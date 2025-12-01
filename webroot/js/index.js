@@ -171,15 +171,11 @@ function enableFirefoxCustomControls(videoElement, videoContainer) {
     const controls = document.createElement('div');
     controls.className = 'firefox-controls';
     controls.innerHTML = `
-        <div class="firefox-volume-control">
-            <input type="range" class="firefox-volume-slider" min="0" max="1" step="0.01" value="${videoElement.muted ? 0 : videoElement.volume}">
-            <button type="button" class="firefox-control-btn mute-btn" aria-label="Mute">
-                <i class="fa-solid fa-volume-high" aria-hidden="true"></i>
-            </button>
-        </div>
-        <button type="button" class="firefox-control-btn fullscreen-btn" aria-label="Enter fullscreen">
-            <i class="fa-solid fa-expand" aria-hidden="true"></i>
+        <button type="button" class="firefox-control-btn mute-btn" aria-label="Mute">
+            <i class="fa-solid fa-volume-high" aria-hidden="true"></i>
         </button>
+        <input type="range" class="firefox-volume-slider" min="0" max="1" step="0.01" value="${videoElement.muted ? 0 : videoElement.volume}">
+        <button type="button" class="firefox-control-btn fullscreen-btn" aria-label="Enter fullscreen">⛶</button>
     `;
 
     const hotspot = document.createElement('div');
@@ -191,38 +187,20 @@ function enableFirefoxCustomControls(videoElement, videoContainer) {
     const muteButton = controls.querySelector('.mute-btn');
     const volumeSlider = controls.querySelector('.firefox-volume-slider');
     const fullscreenButton = controls.querySelector('.fullscreen-btn');
-    const fullscreenIcon = fullscreenButton ? fullscreenButton.querySelector('i') : null;
-    const IDLE_HIDE_DELAY = 5000;
-    const LEAVE_HIDE_DELAY = 250;
-    const INITIAL_HIDE_DELAY = 1200;
     let hideControlsTimeout;
-    let pointerInside = false;
 
     const showControls = () => {
         clearTimeout(hideControlsTimeout);
         videoContainer.classList.add('controls-visible');
     };
 
-    const scheduleHideControls = (delay) => {
-        const effectiveDelay = typeof delay === 'number' ? delay : (pointerInside ? IDLE_HIDE_DELAY : INITIAL_HIDE_DELAY);
+    const scheduleHideControls = () => {
         clearTimeout(hideControlsTimeout);
         hideControlsTimeout = window.setTimeout(() => {
             if (!videoContainer.contains(document.activeElement)) {
                 videoContainer.classList.remove('controls-visible');
-                pointerInside = false;
             }
-        }, effectiveDelay);
-    };
-
-    const handlePointerActivity = () => {
-        pointerInside = true;
-        showControls();
-        scheduleHideControls(IDLE_HIDE_DELAY);
-    };
-
-    const handlePointerLeave = () => {
-        pointerInside = false;
-        scheduleHideControls(LEAVE_HIDE_DELAY);
+        }, 200);
     };
 
     const muteIcon = muteButton ? muteButton.querySelector('i') : null;
@@ -247,13 +225,9 @@ function enableFirefoxCustomControls(videoElement, videoContainer) {
     const syncFullscreenUi = () => {
         const isFullscreen = document.fullscreenElement === videoContainer;
         if (fullscreenButton) {
+            fullscreenButton.textContent = isFullscreen ? '🗗' : '⛶';
             fullscreenButton.setAttribute('aria-label', isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen');
             fullscreenButton.classList.toggle('active', isFullscreen);
-            if (fullscreenIcon) {
-                fullscreenIcon.classList.remove('fa-up-right-and-down-left-from-center', 'fa-down-left-and-up-right-to-center');
-                fullscreenIcon.classList.toggle('fa-expand', !isFullscreen);
-                fullscreenIcon.classList.toggle('fa-compress', isFullscreen);
-            }
         }
     };
 
@@ -277,140 +251,34 @@ function enableFirefoxCustomControls(videoElement, videoContainer) {
             videoElement.volume = value;
             videoElement.muted = value === 0;
         });
-
-        volumeSlider.addEventListener('pointerup', () => {
-            volumeSlider.blur();
-            if (!pointerInside) {
-                scheduleHideControls(LEAVE_HIDE_DELAY);
-            }
-        });
-
-        volumeSlider.addEventListener('mouseleave', () => {
-            if (!pointerInside) {
-                scheduleHideControls(LEAVE_HIDE_DELAY);
-            }
-        });
-
-        volumeSlider.addEventListener('blur', () => {
-            if (!pointerInside) {
-                scheduleHideControls(LEAVE_HIDE_DELAY);
-            }
-        });
     }
-
-    const requestOrientationLock = () => {
-        const orientation = screen.orientation || screen.mozOrientation || screen.msOrientation;
-        if (orientation && orientation.lock) {
-            orientation.lock('landscape').catch(() => {});
-        }
-    };
 
     if (fullscreenButton) {
-        fullscreenButton.addEventListener('click', async () => {
-            const exitFullscreen = async () => {
-                if (document.fullscreenElement) {
-                    try {
-                        await document.exitFullscreen();
-                    } catch (err) {
-                        console.warn('Failed to exit fullscreen:', err);
-                    }
-                }
-            };
-
-            const requestFullscreen = async (element) => {
-                if (!element) return false;
-                try {
-                    if (element.requestFullscreen) {
-                        await element.requestFullscreen();
-                        return true;
-                    }
-                    if (element.webkitRequestFullscreen) {
-                        await element.webkitRequestFullscreen();
-                        return true;
-                    }
-                    if (element.mozRequestFullScreen) {
-                        await element.mozRequestFullScreen();
-                        return true;
-                    }
-                    if (element.msRequestFullscreen) {
-                        await element.msRequestFullscreen();
-                        return true;
-                    }
-                } catch (err) {
-                    console.warn('Fullscreen request failed:', err);
-                }
-                return false;
-            };
-
-            if (document.fullscreenElement === videoContainer || document.fullscreenElement === videoElement) {
-                await exitFullscreen();
-                return;
-            }
-
-            const prefersVideoFullscreen = window.matchMedia('(pointer: coarse)').matches || /android|iphone|ipad|ipod/i.test(navigator.userAgent);
-
-            let entered = false;
-            if (prefersVideoFullscreen) {
-                entered = await requestFullscreen(videoElement);
-            }
-
-            if (!entered) {
-                entered = await requestFullscreen(videoContainer);
-            }
-
-            if (!entered) {
-                // Last resort, try the video element again.
-                entered = await requestFullscreen(videoElement);
-            }
-
-            if (entered) {
-                requestOrientationLock();
+        fullscreenButton.addEventListener('click', () => {
+            if (document.fullscreenElement === videoContainer) {
+                document.exitFullscreen().catch(() => {});
+            } else if (videoContainer.requestFullscreen) {
+                videoContainer.requestFullscreen().catch(() => {});
             }
         });
     }
 
-    hotspot.addEventListener('pointerenter', handlePointerActivity);
-    hotspot.addEventListener('pointermove', handlePointerActivity);
-    hotspot.addEventListener('pointerdown', handlePointerActivity);
-    hotspot.addEventListener('mousemove', handlePointerActivity);
-    hotspot.addEventListener('mouseleave', handlePointerLeave);
-    hotspot.addEventListener('pointerleave', handlePointerLeave);
+    hotspot.addEventListener('mouseenter', showControls);
+    hotspot.addEventListener('mouseleave', scheduleHideControls);
 
-    controls.addEventListener('pointerenter', handlePointerActivity);
-    controls.addEventListener('pointermove', handlePointerActivity);
-    controls.addEventListener('pointerdown', handlePointerActivity);
-    controls.addEventListener('mousemove', handlePointerActivity);
-    controls.addEventListener('mouseleave', handlePointerLeave);
-    controls.addEventListener('pointerleave', handlePointerLeave);
-    controls.addEventListener('focusin', () => {
-        showControls();
-        scheduleHideControls(IDLE_HIDE_DELAY);
-    });
-    controls.addEventListener('focusout', () => scheduleHideControls());
+    controls.addEventListener('mouseenter', showControls);
+    controls.addEventListener('mouseleave', scheduleHideControls);
+    controls.addEventListener('focusin', showControls);
+    controls.addEventListener('focusout', scheduleHideControls);
 
-    videoElement.addEventListener('pointerenter', handlePointerActivity);
-    videoElement.addEventListener('pointermove', handlePointerActivity);
-    videoElement.addEventListener('pointerdown', handlePointerActivity);
-    videoElement.addEventListener('mousemove', handlePointerActivity);
-    videoElement.addEventListener('mouseleave', handlePointerLeave);
-    videoElement.addEventListener('pointerleave', handlePointerLeave);
-
-    videoContainer.addEventListener('pointerenter', handlePointerActivity);
-    videoContainer.addEventListener('pointermove', handlePointerActivity);
-    videoContainer.addEventListener('pointerdown', handlePointerActivity);
-    videoContainer.addEventListener('mousemove', handlePointerActivity);
-    videoContainer.addEventListener('mouseleave', handlePointerLeave);
-    videoContainer.addEventListener('pointerleave', handlePointerLeave);
+    videoContainer.addEventListener('mouseleave', scheduleHideControls);
 
     videoElement.addEventListener('volumechange', syncVolumeUi);
     document.addEventListener('fullscreenchange', syncFullscreenUi);
-    document.addEventListener('webkitfullscreenchange', syncFullscreenUi);
-    document.addEventListener('mozfullscreenchange', syncFullscreenUi);
-    document.addEventListener('MSFullscreenChange', syncFullscreenUi);
 
     syncVolumeUi();
     syncFullscreenUi();
-    scheduleHideControls(INITIAL_HIDE_DELAY);
+    scheduleHideControls();
 }
 
 let currentPrograms = [];
@@ -640,31 +508,23 @@ function updateGuideContent() {
         const cleanEpisode = escapeHtml(program.episode);
         const cleanDescription = escapeHtml(program.description);
         const hasDescription = program.description && program.description.trim().length > 0;
-        const dateInfoText = formatDateInfo(program.startTime, program.stopTime);
-        const safeDateInfo = escapeHtml(dateInfoText);
-
-        const timeRange = formatTimeRange(program.startTime, program.stopTime);
 
         return `
                 <div class="program-item ${program.isCurrent ? 'current' : ''} ${!hasDescription ? 'no-description' : ''} entering" 
                      onclick="toggleProgramDetails(this)" 
                      style="${!hasDescription ? 'cursor: default;' : ''} animation-delay: ${index * 100}ms;">
                     <div class="program-header">
-                        <div class="program-info">
+                        <div>
                             <h3 class="program-title">${cleanTitle}</h3>
                             ${program.episode ? `<p class="program-episode">${cleanEpisode}</p>` : ''}
                         </div>
-                        <div class="program-time-block">
-                            <div class="program-time-row">
-                                ${program.isCurrent ? '<span class="live-badge"></span>' : ''}
-                                <div class="program-time">
-                                    <div class="time-range">${timeRange}</div>
-                                </div>
-                            </div>
-                            ${dateInfoText ? `<div class="date-info">${safeDateInfo}</div>` : ''}
+                        <div class="program-time">
+                            <div class="time-range">${formatTimeRange(program.startTime, program.stopTime)}</div>
+                            ${formatDateInfo(program.startTime, program.stopTime) ? `<div class="date-info">${formatDateInfo(program.startTime, program.stopTime)}</div>` : ''}
                         </div>
                     </div>
                     ${hasDescription ? `<div class="program-description">${cleanDescription}</div>` : ''}
+                    ${program.isCurrent ? '<span class="live-badge">LIVE</span>' : ''}
                 </div>
                 `;
     }).join('');
@@ -760,7 +620,7 @@ function updateGuide() {
 }
 
 function matchGuideHeightToVideo() {
-    if (window.innerWidth >= 1201) {
+    if (window.innerWidth >= 1200) {
         const videoSection = document.querySelector('.video-section');
         const guideContainer = document.querySelector('.guide-container');
 
@@ -821,9 +681,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const videoElement = document.getElementById('andromeda-player');
     const videoContainer = document.querySelector('.video-container');
 
-    const prefersTouch = window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-
-    if (isFirefox && !prefersTouch) {
+    if (isFirefox) {
         enableFirefoxCustomControls(videoElement, videoContainer);
     } else if (videoElement && videoContainer) {
         const showNativeControls = () => videoElement.setAttribute('controls', '');

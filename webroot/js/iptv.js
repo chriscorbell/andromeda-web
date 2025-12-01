@@ -36,10 +36,3 @@ function showCopyFeedback(element) {
         element.classList.remove('copied');
     }, 2000);
 }
-
-function copyOnKey(event, element, text) {
-    if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
-        event.preventDefault();
-        copyToClipboard(element, text);
-    }
-}
