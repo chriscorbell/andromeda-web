@@ -50,15 +50,12 @@ nginx/
 webroot/
   ├── index.html               # Main page with video player and schedule
   ├── iptv.html                # IPTV setup instructions page
-  ├── schedule.html            # Dedicated schedule page
   ├── css/
   │     ├── index.css          # Stylesheet for main page
-  │     ├── iptv.css           # Stylesheet for IPTV page
-  │     └── schedule.css       # Stylesheet for schedule page
+  │     └── iptv.css           # Stylesheet for IPTV page
   ├── js/
   │     ├── index.js           # Scripts for main page
-  │     ├── iptv.js            # Scripts for IPTV page
-  │     └── schedule.js        # Scripts for schedule page
+  │     └── iptv.js            # Scripts for IPTV page
   ├── favicon/
   │     ├── *.png/*.ico/*.svg  # Favicons / web app icons
   │     └── site.webmanifest   # Web app manifest
@@ -120,7 +117,7 @@ The `nginx/default.conf` file template provides:
 - XMLTV guide data proxy (`/guide/`)
 - CORS headers for cross-origin requests
 - URL rewriting for seamless integration
-- Simply replace `subdomain.yourdomain.com` in the `nginx/default.conf` file with what you configured in Cloudflare Tunnel
+- Simply replace `aex.andromedatv.cc` in the `nginx/default.conf` file with your subdomain you configured in Cloudflare Tunnel
 
 #### Example Nginx docker compose file for this implementation:
 ```
@@ -168,9 +165,8 @@ services:
 - **Mobile Browsers**: Optimized touch interface
 - **Legacy Browsers**: Graceful degradation
 
-## Future Enhancements
+## Potential Future Enhancements
 
-Potential improvements for future versions:
 - Support for switching between multiple channels (maybe)
 
 ---
